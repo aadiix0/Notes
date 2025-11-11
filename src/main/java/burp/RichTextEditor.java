@@ -2,25 +2,15 @@ package burp;
 
 import javax.swing.*;
 import java.awt.*;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Element;
-import javax.swing.text.MutableAttributeSet;
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
-import javax.swing.text.StyledEditorKit;
-import javax.swing.text.html.HTMLEditorKit;
+
+import javax.swing.text.*;
+
 import javax.swing.event.HyperlinkEvent;
 import java.io.IOException;
 import java.net.URISyntaxException;
 
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-
 public class RichTextEditor extends JPanel {
     private JTextPane textPane;
-    private NoteEntry currentNoteEntry;
 
     public RichTextEditor() {
         setLayout(new BorderLayout());
@@ -39,23 +29,6 @@ public class RichTextEditor extends JPanel {
             }
         });
         JScrollPane scrollPane = new JScrollPane(textPane);
-
-        textPane.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                saveContent();
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                saveContent();
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                saveContent();
-            }
-        });
 
         JToolBar toolBar = new JToolBar();
         addFormattingButtons(toolBar);
@@ -91,27 +64,18 @@ public class RichTextEditor extends JPanel {
     }
 
     private void toggleBulletPoints() {
-        try {
-            StyledDocument doc = textPane.getStyledDocument();
-            int start = textPane.getSelectionStart();
-            int end = textPane.getSelectionEnd();
-            Element startPara = doc.getParagraphElement(start);
-            Element endPara = doc.getParagraphElement(end);
-            for (int i = startPara.getStartOffset(); i <= endPara.getEndOffset(); i = doc.getParagraphElement(i).getEndOffset() + 1) {
-                Element para = doc.getParagraphElement(i);
-                if (para.getEndOffset() > doc.getLength()) {
-                    break;
-                }
-                String text = doc.getText(para.getStartOffset(), para.getEndOffset() - para.getStartOffset());
-                if (text.startsWith("• ")) {
-                    doc.remove(para.getStartOffset(), 2);
-                } else {
-                    doc.insertString(para.getStartOffset(), "• ", null);
-                }
-            }
-        } catch (BadLocationException e) {
-            e.printStackTrace();
+        StyledDocument doc = textPane.getStyledDocument();
+        int start = textPane.getSelectionStart();
+        int end = textPane.getSelectionEnd();
+        Element paragraph = doc.getParagraphElement(start);
+        AttributeSet as = paragraph.getAttributes();
+        MutableAttributeSet newAs = new SimpleAttributeSet(as.copyAttributes());
+        if (as.getAttribute(StyleConstants.ListAttributeName) == null) {
+            StyleConstants.setListAttributes(newAs, true);
+        } else {
+            newAs.removeAttribute(StyleConstants.ListAttributeName);
         }
+        doc.setParagraphAttributes(paragraph.getStartOffset(), paragraph.getEndOffset() - paragraph.getStartOffset(), newAs, false);
     }
 
     private void insertChecklist() {
@@ -141,15 +105,5 @@ public class RichTextEditor extends JPanel {
 
     public void setText(String text) {
         textPane.setText(text);
-    }
-
-    public void setNoteEntry(NoteEntry noteEntry) {
-        this.currentNoteEntry = noteEntry;
-    }
-
-    private void saveContent() {
-        if (currentNoteEntry != null) {
-            currentNoteEntry.setContent(textPane.getText());
-        }
     }
 }

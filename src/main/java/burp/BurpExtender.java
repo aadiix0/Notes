@@ -1,16 +1,12 @@
 package burp;
 
-import burp.api.montoya.BurpExtension;
-import burp.api.montoya.MontoyaApi;
-import burp.api.montoya.extension.ExtensionUnloadingHandler;
-import burp.api.montoya.logging.Logging;
 import burp.api.montoya.persistence.PersistedObject;
-import com.formdev.flatlaf.FlatDarculaLaf;
+import burp.api.montoya.ui.UserInterface;
 
 import javax.swing.tree.DefaultTreeModel;
 import java.io.*;
 
-public class BurpExtender implements BurpExtension {
+public class BurpExtender implements BurpExtension, burp.api.montoya.extension.ExtensionStateListener {
     private MontoyaApi api;
     private MainPanel mainPanel;
 
@@ -19,41 +15,39 @@ public class BurpExtender implements BurpExtension {
         this.api = api;
         api.extension().setName("Burp Notion");
 
-        FlatDarculaLaf.setup();
-
         Logging logging = api.logging();
         logging.logToOutput("Burp Notion Extension loaded.");
 
         mainPanel = new MainPanel();
         loadNotes();
         api.userInterface().registerSuiteTab("Burp Notion", mainPanel);
-        api.userInterface().registerContextMenuItemsProvider(new ContextMenuProvider(api, mainPanel));
+        api.userInterface().registerContextMenuItemsProvider(new Menu(mainPanel));
 
-        api.extension().registerUnloadingHandler(new ExtensionUnloadingHandler() {
-            @Override
-            public void extensionUnloaded() {
-                saveNotes();
-            }
-        });
+        api.extension().registerExtensionStateListener(this);
+    }
+
+    @Override
+    public void extensionUnloaded() {
+        saveNotes();
     }
 
     private void saveNotes() {
-        DefaultTreeModel treeModel = mainPanel.getOriginalTreeModel();
+        DefaultTreeModel treeModel = mainPanel.getTreeModel();
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
              ObjectOutputStream out = new ObjectOutputStream(bos)) {
             out.writeObject(treeModel);
-            PersistedObject persistedObject = api.persistence().extensionData();
-            persistedObject.setByteArray("notes", burp.api.montoya.core.ByteArray.byteArray(bos.toByteArray()));
+            PersistedObject persistedObject = PersistedObject.persistedObject();
+            persistedObject.setByteArray("notes", bos.toByteArray());
         } catch (IOException e) {
             api.logging().logToError(e);
         }
     }
 
     private void loadNotes() {
-        PersistedObject persistedObject = api.persistence().extensionData();
-        burp.api.montoya.core.ByteArray notesBytes = persistedObject.getByteArray("notes");
+        PersistedObject persistedObject = PersistedObject.persistedObject();
+        byte[] notesBytes = persistedObject.getByteArray("notes");
         if (notesBytes != null) {
-            try (ByteArrayInputStream bis = new ByteArrayInputStream(notesBytes.getBytes());
+            try (ByteArrayInputStream bis = new ByteArrayInputStream(notesBytes);
                  ObjectInputStream in = new ObjectInputStream(bis)) {
                 DefaultTreeModel treeModel = (DefaultTreeModel) in.readObject();
                 mainPanel.setTreeModel(treeModel);
