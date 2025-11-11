@@ -15,8 +15,12 @@ import javax.swing.event.HyperlinkEvent;
 import java.io.IOException;
 import java.net.URISyntaxException;
 
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+
 public class RichTextEditor extends JPanel {
     private JTextPane textPane;
+    private NoteEntry currentNoteEntry;
 
     public RichTextEditor() {
         setLayout(new BorderLayout());
@@ -35,6 +39,23 @@ public class RichTextEditor extends JPanel {
             }
         });
         JScrollPane scrollPane = new JScrollPane(textPane);
+
+        textPane.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                saveContent();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                saveContent();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                saveContent();
+            }
+        });
 
         JToolBar toolBar = new JToolBar();
         addFormattingButtons(toolBar);
@@ -120,5 +141,15 @@ public class RichTextEditor extends JPanel {
 
     public void setText(String text) {
         textPane.setText(text);
+    }
+
+    public void setNoteEntry(NoteEntry noteEntry) {
+        this.currentNoteEntry = noteEntry;
+    }
+
+    private void saveContent() {
+        if (currentNoteEntry != null) {
+            currentNoteEntry.setContent(textPane.getText());
+        }
     }
 }

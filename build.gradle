@@ -12,6 +12,7 @@ repositories {
 
 dependencies {
     implementation 'net.portswigger.burp.extensions:montoya-api:2025.10'
+    implementation 'com.formdev:flatlaf:3.4'
 }
 
 shadowJar {

@@ -5,6 +5,7 @@ import burp.api.montoya.MontoyaApi;
 import burp.api.montoya.extension.ExtensionUnloadingHandler;
 import burp.api.montoya.logging.Logging;
 import burp.api.montoya.persistence.PersistedObject;
+import com.formdev.flatlaf.FlatDarculaLaf;
 
 import javax.swing.tree.DefaultTreeModel;
 import java.io.*;
@@ -17,6 +18,8 @@ public class BurpExtender implements BurpExtension {
     public void initialize(MontoyaApi api) {
         this.api = api;
         api.extension().setName("Burp Notion");
+
+        FlatDarculaLaf.setup();
 
         Logging logging = api.logging();
         logging.logToOutput("Burp Notion Extension loaded.");
@@ -35,7 +38,7 @@ public class BurpExtender implements BurpExtension {
     }
 
     private void saveNotes() {
-        DefaultTreeModel treeModel = mainPanel.getTreeModel();
+        DefaultTreeModel treeModel = mainPanel.getOriginalTreeModel();
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
              ObjectOutputStream out = new ObjectOutputStream(bos)) {
             out.writeObject(treeModel);

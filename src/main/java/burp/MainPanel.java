@@ -34,6 +34,50 @@ public class MainPanel extends JPanel {
         noteTree.setTransferHandler(new TreeTransferHandler());
         JScrollPane treeScrollPane = new JScrollPane(noteTree);
 
+        JButton newNoteButton = new JButton("New Note");
+        newNoteButton.addActionListener(e -> {
+            DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) noteTree.getLastSelectedPathComponent();
+            DefaultMutableTreeNode parentNode;
+
+            if (selectedNode == null) {
+                parentNode = (DefaultMutableTreeNode) treeModel.getRoot();
+            } else {
+                NoteEntry selectedEntry = (NoteEntry) selectedNode.getUserObject();
+                if (selectedEntry.isFolder()) {
+                    parentNode = selectedNode;
+                } else {
+                    parentNode = (DefaultMutableTreeNode) selectedNode.getParent();
+                }
+            }
+            addNote(parentNode);
+        });
+
+        JButton newFolderButton = new JButton("New Folder");
+        newFolderButton.addActionListener(e -> {
+            DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) noteTree.getLastSelectedPathComponent();
+            DefaultMutableTreeNode parentNode;
+
+            if (selectedNode == null) {
+                parentNode = (DefaultMutableTreeNode) treeModel.getRoot();
+            } else {
+                NoteEntry selectedEntry = (NoteEntry) selectedNode.getUserObject();
+                if (selectedEntry.isFolder()) {
+                    parentNode = selectedNode;
+                } else {
+                    parentNode = (DefaultMutableTreeNode) selectedNode.getParent();
+                }
+            }
+            addFolder(parentNode);
+        });
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        buttonPanel.add(newNoteButton);
+        buttonPanel.add(newFolderButton);
+
+        JPanel treePanel = new JPanel(new BorderLayout());
+        treePanel.add(buttonPanel, BorderLayout.NORTH);
+        treePanel.add(treeScrollPane, BorderLayout.CENTER);
+
         noteTree.addMouseListener(new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
                 if (e.isPopupTrigger()) {
@@ -56,6 +100,10 @@ public class MainPanel extends JPanel {
                 NoteEntry selectedEntry = (NoteEntry) selectedNode.getUserObject();
                 if (!selectedEntry.isFolder()) {
                     editor.setText(selectedEntry.getContent());
+                    editor.setNoteEntry(selectedEntry); // Keep track of the current note
+                } else {
+                    editor.setNoteEntry(null); // Clear editor if a folder is selected
+                    editor.setText("");
                 }
             }
         });
@@ -95,7 +143,7 @@ public class MainPanel extends JPanel {
         topPanel.add(searchPanel);
         topPanel.add(tagPanel);
 
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treeScrollPane, editor);
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treePanel, editor);
         splitPane.setDividerLocation(200);
 
         add(topPanel, BorderLayout.NORTH);
@@ -165,6 +213,10 @@ public class MainPanel extends JPanel {
     public void setTreeModel(DefaultTreeModel treeModel) {
         this.treeModel = treeModel;
         noteTree.setModel(treeModel);
+    }
+
+    public DefaultTreeModel getOriginalTreeModel() {
+        return originalTreeModel;
     }
 
     public void linkRequest(HttpRequestResponse requestResponse) {
