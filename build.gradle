@@ -1,0 +1,21 @@
+plugins {
+    id 'java'
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
+}
+
+group 'com.yourcompany'
+version '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'net.portswigger.burp.api:montoya-api:2023.9'
+}
+
+shadowJar {
+    archiveBaseName.set('BurpNotion')
+    archiveClassifier.set('')
+    archiveVersion.set('')
+}
