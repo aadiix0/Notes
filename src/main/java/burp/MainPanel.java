@@ -2,11 +2,13 @@ package burp;
 
 import javax.swing.*;
 import java.awt.*;
-
 import javax.swing.tree.*;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-
+import burp.api.montoya.http.message.HttpRequestResponse;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
@@ -19,12 +21,10 @@ public class MainPanel extends JPanel {
     public MainPanel() {
         setLayout(new BorderLayout());
 
-        // Create the root node and the tree model
         DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(new NoteEntry("Notes", "", true));
         treeModel = new DefaultTreeModel(rootNode);
         originalTreeModel = treeModel;
 
-        // Create the tree
         noteTree = new JTree(treeModel);
         noteTree.setEditable(true);
         noteTree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
@@ -34,7 +34,6 @@ public class MainPanel extends JPanel {
         noteTree.setTransferHandler(new TreeTransferHandler());
         JScrollPane treeScrollPane = new JScrollPane(noteTree);
 
-        // Add a mouse listener for the context menu
         noteTree.addMouseListener(new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
                 if (e.isPopupTrigger()) {
@@ -49,10 +48,8 @@ public class MainPanel extends JPanel {
             }
         });
 
-        // Create the rich text editor
         editor = new RichTextEditor();
 
-        // Add a tree selection listener
         noteTree.addTreeSelectionListener(e -> {
             DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) noteTree.getLastSelectedPathComponent();
             if (selectedNode != null) {
@@ -63,21 +60,19 @@ public class MainPanel extends JPanel {
             }
         });
 
-        // Create a search bar
         JTextField searchField = new JTextField();
-        searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            public void changedUpdate(DocumentEvent e) {
                 filterTree(searchField.getText());
             }
-            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+            public void removeUpdate(DocumentEvent e) {
                 filterTree(searchField.getText());
             }
-            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+            public void insertUpdate(DocumentEvent e) {
                 filterTree(searchField.getText());
             }
         });
 
-        // Create a tag field
         JTextField tagField = new JTextField();
         tagField.addActionListener(e -> {
             DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) noteTree.getLastSelectedPathComponent();
@@ -90,7 +85,6 @@ public class MainPanel extends JPanel {
             }
         });
 
-        // Add the search and tag fields to a panel
         JPanel topPanel = new JPanel(new GridLayout(2, 1));
         JPanel searchPanel = new JPanel(new BorderLayout());
         searchPanel.add(new JLabel("Search: "), BorderLayout.WEST);
@@ -101,7 +95,6 @@ public class MainPanel extends JPanel {
         topPanel.add(searchPanel);
         topPanel.add(tagPanel);
 
-        // Create a split pane to hold the tree and the editor
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treeScrollPane, editor);
         splitPane.setDividerLocation(200);
 
@@ -213,7 +206,6 @@ public class MainPanel extends JPanel {
         }
     }
 
-    // Inner class for drag and drop functionality
     class TreeTransferHandler extends TransferHandler {
         DataFlavor nodesFlavor;
         DataFlavor[] flavors = new DataFlavor[1];
@@ -232,7 +224,7 @@ public class MainPanel extends JPanel {
             }
         }
 
-        public boolean canImport(TransferHandler.TransferSupport support) {
+        public boolean canImport(TransferSupport support) {
             if (!support.isDrop()) {
                 return false;
             }
@@ -275,7 +267,7 @@ public class MainPanel extends JPanel {
             return MOVE;
         }
 
-        public boolean importData(TransferHandler.TransferSupport support) {
+        public boolean importData(TransferSupport support) {
             if (!canImport(support)) {
                 return false;
             }

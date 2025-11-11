@@ -2,9 +2,15 @@ package burp;
 
 import javax.swing.*;
 import java.awt.*;
-
-import javax.swing.text.*;
-
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Element;
+import javax.swing.text.MutableAttributeSet;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
+import javax.swing.text.StyledEditorKit;
+import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.event.HyperlinkEvent;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -64,18 +70,27 @@ public class RichTextEditor extends JPanel {
     }
 
     private void toggleBulletPoints() {
-        StyledDocument doc = textPane.getStyledDocument();
-        int start = textPane.getSelectionStart();
-        int end = textPane.getSelectionEnd();
-        Element paragraph = doc.getParagraphElement(start);
-        AttributeSet as = paragraph.getAttributes();
-        MutableAttributeSet newAs = new SimpleAttributeSet(as.copyAttributes());
-        if (as.getAttribute(StyleConstants.ListAttributeName) == null) {
-            StyleConstants.setListAttributes(newAs, true);
-        } else {
-            newAs.removeAttribute(StyleConstants.ListAttributeName);
+        try {
+            StyledDocument doc = textPane.getStyledDocument();
+            int start = textPane.getSelectionStart();
+            int end = textPane.getSelectionEnd();
+            Element startPara = doc.getParagraphElement(start);
+            Element endPara = doc.getParagraphElement(end);
+            for (int i = startPara.getStartOffset(); i <= endPara.getEndOffset(); i = doc.getParagraphElement(i).getEndOffset() + 1) {
+                Element para = doc.getParagraphElement(i);
+                if (para.getEndOffset() > doc.getLength()) {
+                    break;
+                }
+                String text = doc.getText(para.getStartOffset(), para.getEndOffset() - para.getStartOffset());
+                if (text.startsWith("• ")) {
+                    doc.remove(para.getStartOffset(), 2);
+                } else {
+                    doc.insertString(para.getStartOffset(), "• ", null);
+                }
+            }
+        } catch (BadLocationException e) {
+            e.printStackTrace();
         }
-        doc.setParagraphAttributes(paragraph.getStartOffset(), paragraph.getEndOffset() - paragraph.getStartOffset(), newAs, false);
     }
 
     private void insertChecklist() {
