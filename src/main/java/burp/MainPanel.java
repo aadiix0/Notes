@@ -12,37 +12,98 @@ import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
+import org.fife.ui.rtextarea.RTextScrollPane;
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
+
+
 public class MainPanel extends JPanel {
     private JTree noteTree;
     private DefaultTreeModel treeModel;
     private DefaultTreeModel originalTreeModel;
-    private RichTextEditor editor;
+    private RSyntaxTextArea editor;
+    private JSplitPane splitPane;
+    private int lastDividerLocation = 250;
+    private int defaultDividerSize;
+
 
     public MainPanel() {
         setLayout(new BorderLayout());
+        setOpaque(false);
 
         // --- Left Panel ---
         JPanel leftPanel = new JPanel(new BorderLayout());
+        leftPanel.setOpaque(false);
+
+        // Create a new top panel to hold search and filters
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
+        topPanel.setOpaque(false);
+        topPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
 
         // Create the search bar
-        JTextField searchField = new JTextField("Search...");
+        JTextField searchField = new JTextField();
+        searchField.putClientProperty("JTextField.placeholderText", "Search...");
+        searchField.putClientProperty("JTextField.leadingIcon", UIManager.getIcon("Actions.find"));
+        searchField.putClientProperty("JTextField.trailingComponent", new JLabel(UIManager.getIcon("Component.helpIcon")));
+
         searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void changedUpdate(DocumentEvent e) { filterTree(searchField.getText()); }
-            public void removeUpdate(DocumentEvent e) { filterTree(searchField.getText()); }
-            public void insertUpdate(DocumentEvent e) { filterTree(searchField.getText()); }
+            public void changedUpdate(DocumentEvent e) { filterTreeByText(searchField.getText()); }
+            public void removeUpdate(DocumentEvent e) { filterTreeByText(searchField.getText()); }
+            public void insertUpdate(DocumentEvent e) { filterTreeByText(searchField.getText()); }
         });
         JPanel searchPanel = new JPanel(new BorderLayout());
+        searchPanel.setOpaque(false);
         searchPanel.add(searchField, BorderLayout.CENTER);
-        searchPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        leftPanel.add(searchPanel, BorderLayout.NORTH);
+
+        JButton toggleButton = new JButton("<<");
+        toggleButton.setToolTipText("Toggle folder structure");
+        searchPanel.add(toggleButton, BorderLayout.EAST);
+
+
+        // Create the filter tabs panel
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        filterPanel.setOpaque(false);
+        filterPanel.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 0));
+
+        JToggleButton allButton = new JToggleButton("All");
+        JToggleButton doneButton = new JToggleButton("Done");
+        JToggleButton todoButton = new JToggleButton("To do");
+
+        allButton.addActionListener(e -> filterTreeByStatus(null));
+        doneButton.addActionListener(e -> filterTreeByStatus(NoteEntry.NoteStatus.DONE));
+        todoButton.addActionListener(e -> filterTreeByStatus(NoteEntry.NoteStatus.TODO));
+
+
+        // Style the buttons
+        allButton.putClientProperty("JButton.buttonType", "roundRect");
+        doneButton.putClientProperty("JButton.buttonType", "roundRect");
+        todoButton.putClientProperty("JButton.buttonType", "roundRect");
+        allButton.setSelected(true);
+
+        ButtonGroup filterGroup = new ButtonGroup();
+        filterGroup.add(allButton);
+        filterGroup.add(doneButton);
+        filterGroup.add(todoButton);
+
+        filterPanel.add(allButton);
+        filterPanel.add(Box.createHorizontalStrut(5));
+        filterPanel.add(doneButton);
+        filterPanel.add(Box.createHorizontalStrut(5));
+        filterPanel.add(todoButton);
+
+        topPanel.add(searchPanel);
+        topPanel.add(filterPanel);
+
+        leftPanel.add(topPanel, BorderLayout.NORTH);
+
 
         // Create the tree
         DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(new NoteEntry("Notes", "", true));
         treeModel = new DefaultTreeModel(rootNode);
         originalTreeModel = treeModel;
         noteTree = new JTree(treeModel);
-        noteTree.setBackground(new Color(43, 43, 43));
-        noteTree.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         noteTree.setCellRenderer(new CustomTreeCellRenderer());
         noteTree.setEditable(true);
         noteTree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
@@ -51,6 +112,9 @@ public class MainPanel extends JPanel {
         noteTree.setDropMode(DropMode.ON_OR_INSERT);
         noteTree.setTransferHandler(new TreeTransferHandler());
         JScrollPane treeScrollPane = new JScrollPane(noteTree);
+        treeScrollPane.setOpaque(false);
+        treeScrollPane.getViewport().setOpaque(false);
+        treeScrollPane.setBorder(BorderFactory.createEmptyBorder());
         leftPanel.add(treeScrollPane, BorderLayout.CENTER);
 
         // Add context menu
@@ -61,14 +125,31 @@ public class MainPanel extends JPanel {
 
         // Add "Create new group" button
         JButton createGroupButton = new JButton("Create new group");
+        createGroupButton.putClientProperty("JButton.buttonType", "roundRect");
+        createGroupButton.setIcon(UIManager.getIcon("Tree.plusIcon"));
         createGroupButton.addActionListener(e -> addFolder((DefaultMutableTreeNode) treeModel.getRoot()));
         JPanel buttonPanel = new JPanel(new BorderLayout());
+        buttonPanel.setOpaque(false);
         buttonPanel.add(createGroupButton, BorderLayout.CENTER);
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         leftPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         // --- Right Panel (Editor) ---
-        editor = new RichTextEditor();
+        editor = new RSyntaxTextArea(20, 60);
+        editor.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_NONE);
+        editor.setCodeFoldingEnabled(true);
+        editor.setAntiAliasingEnabled(true);
+        editor.setBackground(new Color(43, 43, 43));
+        editor.setForeground(new Color(204, 204, 204));
+        editor.setCurrentLineHighlightColor(new Color(53, 53, 53));
+
+
+        RTextScrollPane editorScrollPane = new RTextScrollPane(editor);
+        editorScrollPane.getGutter().setBackground(new Color(43, 43, 43));
+        editorScrollPane.setOpaque(false);
+        editorScrollPane.getViewport().setOpaque(false);
+        editorScrollPane.setBorder(BorderFactory.createEmptyBorder());
+
 
         // Add tree selection listener to update editor
         noteTree.addTreeSelectionListener(e -> {
@@ -83,11 +164,42 @@ public class MainPanel extends JPanel {
 
 
         // Create a split pane
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, editor);
-        splitPane.setDividerLocation(250);
+        splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, editorScrollPane);
+        splitPane.setDividerLocation(lastDividerLocation);
+        defaultDividerSize = splitPane.getDividerSize();
+
+
+        // Add action listener to the toggle button
+        toggleButton.addActionListener(e -> toggleLeftPanel());
+
+        // Add keyboard shortcut for toggling
+        getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
+                KeyStroke.getKeyStroke("control B"), "toggleLeftPanel");
+        getActionMap().put("toggleLeftPanel", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                toggleLeftPanel();
+            }
+        });
+
 
         add(splitPane, BorderLayout.CENTER);
     }
+
+    private void toggleLeftPanel() {
+        if (splitPane.getLeftComponent().isVisible()) {
+            // Hide left panel
+            lastDividerLocation = splitPane.getDividerLocation();
+            splitPane.getLeftComponent().setVisible(false);
+            splitPane.setDividerSize(0);
+        } else {
+            // Show left panel
+            splitPane.getLeftComponent().setVisible(true);
+            splitPane.setDividerLocation(lastDividerLocation);
+            splitPane.setDividerSize(defaultDividerSize);
+        }
+    }
+
 
     private void showContextMenu(MouseEvent e) {
         TreePath path = noteTree.getPathForLocation(e.getX(), e.getY());
@@ -167,7 +279,7 @@ public class MainPanel extends JPanel {
         }
     }
 
-    private void filterTree(String searchText) {
+    private void filterTreeByText(String searchText) {
         if (searchText.isEmpty() || searchText.equals("Search...")) {
             noteTree.setModel(originalTreeModel);
             treeModel = originalTreeModel;
@@ -175,19 +287,53 @@ public class MainPanel extends JPanel {
         }
         DefaultMutableTreeNode root = (DefaultMutableTreeNode) originalTreeModel.getRoot();
         DefaultMutableTreeNode filteredRoot = new DefaultMutableTreeNode(root.getUserObject());
-        filter(root, filteredRoot, searchText.toLowerCase());
+        filterByText(root, filteredRoot, searchText.toLowerCase());
         treeModel = new DefaultTreeModel(filteredRoot);
         noteTree.setModel(treeModel);
     }
 
-    private boolean filter(DefaultMutableTreeNode parent, DefaultMutableTreeNode filteredParent, String searchText) {
+    private boolean filterByText(DefaultMutableTreeNode parent, DefaultMutableTreeNode filteredParent, String searchText) {
         boolean parentMatches = false;
         for (int i = 0; i < parent.getChildCount(); i++) {
             DefaultMutableTreeNode child = (DefaultMutableTreeNode) parent.getChildAt(i);
             NoteEntry entry = (NoteEntry) child.getUserObject();
             DefaultMutableTreeNode filteredChild = new DefaultMutableTreeNode(entry);
 
-            if (filter(child, filteredChild, searchText) || entry.getTitle().toLowerCase().contains(searchText)) {
+            if (filterByText(child, filteredChild, searchText) || entry.getTitle().toLowerCase().contains(searchText)) {
+                filteredParent.add(filteredChild);
+                parentMatches = true;
+            }
+        }
+        return parentMatches;
+    }
+
+    private void filterTreeByStatus(NoteEntry.NoteStatus status) {
+        if (status == null) {
+            noteTree.setModel(originalTreeModel);
+            treeModel = originalTreeModel;
+            return;
+        }
+
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) originalTreeModel.getRoot();
+        DefaultMutableTreeNode filteredRoot = new DefaultMutableTreeNode(root.getUserObject());
+        filterByStatus(root, filteredRoot, status);
+        treeModel = new DefaultTreeModel(filteredRoot);
+        noteTree.setModel(treeModel);
+    }
+
+    private boolean filterByStatus(DefaultMutableTreeNode parent, DefaultMutableTreeNode filteredParent, NoteEntry.NoteStatus status) {
+        boolean parentMatches = false;
+        for (int i = 0; i < parent.getChildCount(); i++) {
+            DefaultMutableTreeNode child = (DefaultMutableTreeNode) parent.getChildAt(i);
+            NoteEntry entry = (NoteEntry) child.getUserObject();
+            DefaultMutableTreeNode filteredChild = new DefaultMutableTreeNode(entry);
+
+            if (entry.isFolder()) {
+                if (filterByStatus(child, filteredChild, status)) {
+                    filteredParent.add(filteredChild);
+                    parentMatches = true;
+                }
+            } else if (entry.getStatus() == status) {
                 filteredParent.add(filteredChild);
                 parentMatches = true;
             }

@@ -6,11 +6,24 @@ import javax.swing.tree.DefaultTreeCellRenderer;
 import java.awt.*;
 
 public class CustomTreeCellRenderer extends DefaultTreeCellRenderer {
+    private final Color selectionColor = new Color(13, 126, 255); // #0D7EFF
+
     @Override
     public Component getTreeCellRendererComponent(JTree tree, Object value,
                                                   boolean sel, boolean expanded,
                                                   boolean leaf, int row, boolean hasFocus) {
         super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
+
+        setOpaque(true);
+        setTextSelectionColor(UIManager.getColor("Tree.selectionForeground"));
+
+        // Set the background color
+        if (sel) {
+            setBackground(selectionColor);
+        } else {
+            setBackground(tree.getBackground());
+        }
+
 
         DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
         Object userObject = node.getUserObject();
@@ -26,15 +39,6 @@ public class CustomTreeCellRenderer extends DefaultTreeCellRenderer {
             }
         }
 
-        // Set background and foreground colors
-        if (sel) {
-            setBackground(new Color(69, 69, 69));
-            setForeground(Color.WHITE);
-        } else {
-            setBackground(tree.getBackground());
-            setForeground(UIManager.getColor("Tree.foreground"));
-        }
-        setOpaque(true);
 
         return this;
     }

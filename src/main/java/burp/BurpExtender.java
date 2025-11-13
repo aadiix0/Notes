@@ -7,7 +7,6 @@ import burp.api.montoya.logging.Logging;
 import burp.api.montoya.persistence.PersistedObject;
 import com.formdev.flatlaf.FlatDarculaLaf;
 
-import javax.swing.UIManager;
 import javax.swing.tree.DefaultTreeModel;
 import java.io.*;
 
@@ -19,13 +18,30 @@ public class BurpExtender implements BurpExtension {
     public void initialize(MontoyaApi api) {
         this.api = api;
         api.extension().setName("Burp Notion");
+
+        // Apply FlatLaf Darcula theme
         FlatDarculaLaf.setup();
 
-        UIManager.put("Component.arrowType", "chevron");
-        UIManager.put("Tree.paint.lines", false);
-        UIManager.put("Tree.rowHeight", 24);
-        UIManager.put("Tree.leftChildIndent", 10);
-        UIManager.put("Tree.rightChildIndent", 10);
+        // Apply custom dark theme properties
+        javax.swing.UIManager.put("Panel.background", new java.awt.Color(43, 43, 43));
+        javax.swing.UIManager.put("Component.background", new java.awt.Color(43, 43, 43));
+        javax.swing.UIManager.put("Window.background", new java.awt.Color(43, 43, 43));
+        javax.swing.UIManager.put("TextArea.background", new java.awt.Color(43, 43, 43));
+        javax.swing.UIManager.put("Tree.background", new java.awt.Color(43, 43, 43));
+        javax.swing.UIManager.put("TextField.background", new java.awt.Color(43, 43, 43));
+
+        // Set tree icons
+        javax.swing.UIManager.put("Tree.collapsedIcon", javax.swing.UIManager.getIcon("Component.arrow.right"));
+        javax.swing.UIManager.put("Tree.expandedIcon", javax.swing.UIManager.getIcon("Component.arrow.down"));
+        javax.swing.UIManager.put("Tree.paintLines", false);
+
+
+        javax.swing.UIManager.put("Component.foreground", new java.awt.Color(204, 204, 204));
+        javax.swing.UIManager.put("Label.foreground", new java.awt.Color(204, 204, 204));
+        javax.swing.UIManager.put("TextArea.foreground", new java.awt.Color(204, 204, 204));
+        javax.swing.UIManager.put("Tree.foreground", new java.awt.Color(204, 204, 204));
+        javax.swing.UIManager.put("TextField.foreground", new java.awt.Color(204, 204, 204));
+
 
         Logging logging = api.logging();
         logging.logToOutput("Burp Notion Extension loaded.");
