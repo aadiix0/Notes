@@ -19,11 +19,7 @@ public class CustomTreeCellRenderer extends DefaultTreeCellRenderer {
             NoteEntry entry = (NoteEntry) userObject;
             if (entry.isFolder()) {
                 // Set folder icon
-                if (expanded) {
-                    setIcon(UIManager.getIcon("Tree.expandedIcon"));
-                } else {
-                    setIcon(UIManager.getIcon("Tree.collapsedIcon"));
-                }
+                setIcon(UIManager.getIcon("FileView.directoryIcon"));
             } else {
                 // Set file icon
                 setIcon(UIManager.getIcon("Tree.leafIcon"));
@@ -32,12 +28,13 @@ public class CustomTreeCellRenderer extends DefaultTreeCellRenderer {
 
         // Set background and foreground colors
         if (sel) {
-            setBackground(new Color(228, 231, 235));
-            setForeground(UIManager.getColor("Tree.selectionForeground"));
+            setBackground(new Color(69, 69, 69));
+            setForeground(Color.WHITE);
         } else {
-            setBackground(UIManager.getColor("Tree.background"));
+            setBackground(tree.getBackground());
             setForeground(UIManager.getColor("Tree.foreground"));
         }
+        setOpaque(true);
 
         return this;
     }

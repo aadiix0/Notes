@@ -41,6 +41,8 @@ public class MainPanel extends JPanel {
         treeModel = new DefaultTreeModel(rootNode);
         originalTreeModel = treeModel;
         noteTree = new JTree(treeModel);
+        noteTree.setBackground(new Color(43, 43, 43));
+        noteTree.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         noteTree.setCellRenderer(new CustomTreeCellRenderer());
         noteTree.setEditable(true);
         noteTree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
