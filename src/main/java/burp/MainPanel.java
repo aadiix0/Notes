@@ -41,6 +41,7 @@ public class MainPanel extends JPanel {
         treeModel = new DefaultTreeModel(rootNode);
         originalTreeModel = treeModel;
         noteTree = new JTree(treeModel);
+        noteTree.setCellRenderer(new CustomTreeCellRenderer());
         noteTree.setEditable(true);
         noteTree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         noteTree.setShowsRootHandles(true);

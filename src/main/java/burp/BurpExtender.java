@@ -7,6 +7,7 @@ import burp.api.montoya.logging.Logging;
 import burp.api.montoya.persistence.PersistedObject;
 import com.formdev.flatlaf.FlatDarculaLaf;
 
+import javax.swing.UIManager;
 import javax.swing.tree.DefaultTreeModel;
 import java.io.*;
 
@@ -19,6 +20,12 @@ public class BurpExtender implements BurpExtension {
         this.api = api;
         api.extension().setName("Burp Notion");
         FlatDarculaLaf.setup();
+
+        UIManager.put("Component.arrowType", "chevron");
+        UIManager.put("Tree.paint.lines", false);
+        UIManager.put("Tree.rowHeight", 24);
+        UIManager.put("Tree.leftChildIndent", 10);
+        UIManager.put("Tree.rightChildIndent", 10);
 
         Logging logging = api.logging();
         logging.logToOutput("Burp Notion Extension loaded.");
