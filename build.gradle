@@ -8,10 +8,12 @@ version '1.0'
 
 repositories {
     mavenCentral()
+    maven { url 'https://www.portswigger.net/burp/maven' }
 }
 
 dependencies {
-    implementation 'net.portswigger.burp.api:montoya-api:2023.9'
+    implementation 'net.portswigger.burp.extensions:montoya-api:2025.11'
+    implementation 'com.formdev:flatlaf:3.4'
 }
 
 shadowJar {

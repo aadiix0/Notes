@@ -1,14 +1,16 @@
 package burp;
 
-import javax.swing.*;
-import java.awt.*;
+import burp.api.montoya.http.message.HttpRequestResponse;
 
+import javax.swing.*;
+import javax.swing.event.DocumentEvent;
 import javax.swing.tree.*;
+import java.awt.*;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 
 public class MainPanel extends JPanel {
     private JTree noteTree;
@@ -19,12 +21,25 @@ public class MainPanel extends JPanel {
     public MainPanel() {
         setLayout(new BorderLayout());
 
-        // Create the root node and the tree model
+        // --- Left Panel ---
+        JPanel leftPanel = new JPanel(new BorderLayout());
+
+        // Create the search bar
+        JTextField searchField = new JTextField("Search...");
+        searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void changedUpdate(DocumentEvent e) { filterTree(searchField.getText()); }
+            public void removeUpdate(DocumentEvent e) { filterTree(searchField.getText()); }
+            public void insertUpdate(DocumentEvent e) { filterTree(searchField.getText()); }
+        });
+        JPanel searchPanel = new JPanel(new BorderLayout());
+        searchPanel.add(searchField, BorderLayout.CENTER);
+        searchPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        leftPanel.add(searchPanel, BorderLayout.NORTH);
+
+        // Create the tree
         DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(new NoteEntry("Notes", "", true));
         treeModel = new DefaultTreeModel(rootNode);
         originalTreeModel = treeModel;
-
-        // Create the tree
         noteTree = new JTree(treeModel);
         noteTree.setEditable(true);
         noteTree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
@@ -33,26 +48,26 @@ public class MainPanel extends JPanel {
         noteTree.setDropMode(DropMode.ON_OR_INSERT);
         noteTree.setTransferHandler(new TreeTransferHandler());
         JScrollPane treeScrollPane = new JScrollPane(noteTree);
+        leftPanel.add(treeScrollPane, BorderLayout.CENTER);
 
-        // Add a mouse listener for the context menu
+        // Add context menu
         noteTree.addMouseListener(new MouseAdapter() {
-            public void mousePressed(MouseEvent e) {
-                if (e.isPopupTrigger()) {
-                    showContextMenu(e);
-                }
-            }
-
-            public void mouseReleased(MouseEvent e) {
-                if (e.isPopupTrigger()) {
-                    showContextMenu(e);
-                }
-            }
+            public void mousePressed(MouseEvent e) { if (e.isPopupTrigger()) { showContextMenu(e); } }
+            public void mouseReleased(MouseEvent e) { if (e.isPopupTrigger()) { showContextMenu(e); } }
         });
 
-        // Create the rich text editor
+        // Add "Create new group" button
+        JButton createGroupButton = new JButton("Create new group");
+        createGroupButton.addActionListener(e -> addFolder((DefaultMutableTreeNode) treeModel.getRoot()));
+        JPanel buttonPanel = new JPanel(new BorderLayout());
+        buttonPanel.add(createGroupButton, BorderLayout.CENTER);
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        leftPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        // --- Right Panel (Editor) ---
         editor = new RichTextEditor();
 
-        // Add a tree selection listener
+        // Add tree selection listener to update editor
         noteTree.addTreeSelectionListener(e -> {
             DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) noteTree.getLastSelectedPathComponent();
             if (selectedNode != null) {
@@ -63,49 +78,11 @@ public class MainPanel extends JPanel {
             }
         });
 
-        // Create a search bar
-        JTextField searchField = new JTextField();
-        searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void changedUpdate(javax.swing.event.DocumentEvent e) {
-                filterTree(searchField.getText());
-            }
-            public void removeUpdate(javax.swing.event.DocumentEvent e) {
-                filterTree(searchField.getText());
-            }
-            public void insertUpdate(javax.swing.event.DocumentEvent e) {
-                filterTree(searchField.getText());
-            }
-        });
 
-        // Create a tag field
-        JTextField tagField = new JTextField();
-        tagField.addActionListener(e -> {
-            DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) noteTree.getLastSelectedPathComponent();
-            if (selectedNode != null) {
-                NoteEntry selectedEntry = (NoteEntry) selectedNode.getUserObject();
-                if (!selectedEntry.isFolder()) {
-                    selectedEntry.addTag(tagField.getText());
-                    tagField.setText("");
-                }
-            }
-        });
+        // Create a split pane
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, editor);
+        splitPane.setDividerLocation(250);
 
-        // Add the search and tag fields to a panel
-        JPanel topPanel = new JPanel(new GridLayout(2, 1));
-        JPanel searchPanel = new JPanel(new BorderLayout());
-        searchPanel.add(new JLabel("Search: "), BorderLayout.WEST);
-        searchPanel.add(searchField, BorderLayout.CENTER);
-        JPanel tagPanel = new JPanel(new BorderLayout());
-        tagPanel.add(new JLabel("Tags: "), BorderLayout.WEST);
-        tagPanel.add(tagField, BorderLayout.CENTER);
-        topPanel.add(searchPanel);
-        topPanel.add(tagPanel);
-
-        // Create a split pane to hold the tree and the editor
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treeScrollPane, editor);
-        splitPane.setDividerLocation(200);
-
-        add(topPanel, BorderLayout.NORTH);
         add(splitPane, BorderLayout.CENTER);
     }
 
@@ -171,6 +148,7 @@ public class MainPanel extends JPanel {
 
     public void setTreeModel(DefaultTreeModel treeModel) {
         this.treeModel = treeModel;
+        this.originalTreeModel = treeModel;
         noteTree.setModel(treeModel);
     }
 
@@ -179,7 +157,7 @@ public class MainPanel extends JPanel {
         if (selectedNode != null) {
             NoteEntry selectedEntry = (NoteEntry) selectedNode.getUserObject();
             if (!selectedEntry.isFolder()) {
-                String link = String.format("<a href=\"%s\">%s</a>", requestResponse.request().url(), requestResponse.request().url());
+                String link = String.format("<a href=\"%s\">%s</a>", requestResponse.url(), requestResponse.url());
                 selectedEntry.setContent(selectedEntry.getContent() + "\n" + link);
                 editor.setText(selectedEntry.getContent());
             }
@@ -187,7 +165,7 @@ public class MainPanel extends JPanel {
     }
 
     private void filterTree(String searchText) {
-        if (searchText.isEmpty()) {
+        if (searchText.isEmpty() || searchText.equals("Search...")) {
             noteTree.setModel(originalTreeModel);
             treeModel = originalTreeModel;
             return;
@@ -199,18 +177,19 @@ public class MainPanel extends JPanel {
         noteTree.setModel(treeModel);
     }
 
-    private void filter(DefaultMutableTreeNode parent, DefaultMutableTreeNode filteredParent, String searchText) {
+    private boolean filter(DefaultMutableTreeNode parent, DefaultMutableTreeNode filteredParent, String searchText) {
+        boolean parentMatches = false;
         for (int i = 0; i < parent.getChildCount(); i++) {
             DefaultMutableTreeNode child = (DefaultMutableTreeNode) parent.getChildAt(i);
             NoteEntry entry = (NoteEntry) child.getUserObject();
-            if (entry.getTitle().toLowerCase().contains(searchText) ||
-                entry.getContent().toLowerCase().contains(searchText) ||
-                entry.getTags().stream().anyMatch(tag -> tag.toLowerCase().contains(searchText))) {
-                DefaultMutableTreeNode filteredChild = new DefaultMutableTreeNode(entry);
+            DefaultMutableTreeNode filteredChild = new DefaultMutableTreeNode(entry);
+
+            if (filter(child, filteredChild, searchText) || entry.getTitle().toLowerCase().contains(searchText)) {
                 filteredParent.add(filteredChild);
-                filter(child, filteredChild, searchText);
+                parentMatches = true;
             }
         }
+        return parentMatches;
     }
 
     // Inner class for drag and drop functionality
@@ -223,7 +202,7 @@ public class MainPanel extends JPanel {
             try {
                 String mimeType = DataFlavor.javaJVMLocalObjectMimeType +
                                   ";class=\"" +
-                                  javax.swing.tree.DefaultMutableTreeNode[].class.getName() +
+                                  DefaultMutableTreeNode[].class.getName() +
                                   "\"";
                 nodesFlavor = new DataFlavor(mimeType);
                 flavors[0] = nodesFlavor;
@@ -232,7 +211,7 @@ public class MainPanel extends JPanel {
             }
         }
 
-        public boolean canImport(TransferHandler.TransferSupport support) {
+        public boolean canImport(TransferSupport support) {
             if (!support.isDrop()) {
                 return false;
             }
@@ -275,7 +254,7 @@ public class MainPanel extends JPanel {
             return MOVE;
         }
 
-        public boolean importData(TransferHandler.TransferSupport support) {
+        public boolean importData(TransferSupport support) {
             if (!canImport(support)) {
                 return false;
             }
@@ -299,7 +278,7 @@ public class MainPanel extends JPanel {
                 index = parent.getChildCount();
             }
             nodesToRemove = new DefaultMutableTreeNode[nodes.length];
-            for (int i = 0; i < nodes.length; i++) {
+            for(int i = 0; i < nodes.length; i++) {
                 nodesToRemove[i] = nodes[i];
             }
             for (int i = 0; i < nodes.length; i++) {
